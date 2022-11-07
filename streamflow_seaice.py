@@ -5,27 +5,33 @@ from scipy.stats import pearsonr
 
 extent = pd.read_excel('Sea_Ice_Index_Daily_Extent_G02135_v3.0.xlsx', sheet_name=1)
 extent = extent.T
-extent = extent.drop(['Unnamed: 0', 'Unnamed: 1', 1978, 1979, 2021, 2022, '1981-2010 mean', '1981-2010 median'])
+extent = extent.drop(['Unnamed: 0', 'Unnamed: 1', 1978, 2021, 2022, '1981-2010 mean', '1981-2010 median'])
 extent = extent.astype('float')
+extent = extent.interpolate(method='linear', axis=1)
 extent = extent.interpolate(method='linear', axis=0)
 extent_1d = extent.values.flatten()
 seaice_detrended = detrend(extent_1d)
-seaice = np.array(seaice_detrended).reshape(41, 366)
+seaice = np.array(seaice_detrended).reshape(42, 366)
 seaice = pd.DataFrame(seaice)
 
+
+new_index = np.arange(41)
+
 # get sea ice data for DJF
-seaice_jf = seaice.loc[:, 0:59]
-seaice_d = seaice.loc[:, 335:]
-seaice_djf = pd.concat([seaice_d, seaice_jf], axis=1)
+seaice_jf = seaice.loc[1:, 0:59]
+seaice_jf.index = new_index
+seaice_d = seaice.loc[0:40, 335:]
+seaice_d.index = new_index
+seaice_djf = pd.concat([seaice_d, seaice_jf], ignore_index=True, axis=1)
 seaice_mean_djf = seaice_djf.mean(axis=1).to_list()
 
 # get sea ice data for MAM
-seaice_mam = seaice.loc[:, 59:152]
+seaice_mam = seaice.loc[1:, 59:152]
 seaice_mam = pd.DataFrame(seaice_mam)
 seaice_mean_mam = seaice_mam.mean(axis=1).to_list()
 
 # get sea ice data for JJA
-seaice_jja = seaice.loc[:, 152:243]
+seaice_jja = seaice.loc[1:, 152:243]
 seaice_jja = pd.DataFrame(seaice_jja)
 seaice_mean_jja = seaice_jja.mean(axis=1).to_list()
 
@@ -69,26 +75,30 @@ for season in range(len(seasons)):
         seaice_corr.append(r[0])
         seaice_p.append(r[1])
 
-    corr_djf = seaice_corr[0:131]
-    corr_mam = seaice_corr[131:262]
-    corr_jja = seaice_corr[262:]
+corr_djf = seaice_corr[0:131]
+print(corr_djf)
+corr_mam = seaice_corr[131:262]
+print(corr_mam)
+corr_jja = seaice_corr[262:]
+print(corr_jja)
 
-    p_djf = seaice_p[0:131]
-    p_mam = seaice_p[131:262]
-    p_jja = seaice_p[262:]
+p_djf = seaice_p[0:131]
+p_mam = seaice_p[131:262]
+p_jja = seaice_p[262:]
 
-    df = []
-    for sheet in range(num_stations):
-        print(sheet)
-        streamflow_df = pd.read_excel('Streamflow_Data.xlsx', sheet_name=sheet)
-        streamflow_subset = streamflow_df.drop(['Year', 'Month', 'ft3/s'], axis=1)
-        streamflow_subset['r_djf'] = corr_djf[sheet]
-        streamflow_subset['p_djf'] = p_djf[sheet]
-        streamflow_subset['r_mam'] = corr_mam[sheet]
-        streamflow_subset['p_mam'] = p_mam[sheet]
-        streamflow_subset['r_jja'] = corr_jja[sheet]
-        streamflow_subset['p_jja'] = p_jja[sheet]
-        streamflow_subset = streamflow_subset.iloc[0]
-        df.append(streamflow_subset)
+df = []
+for sheet in range(num_stations):
+    print(sheet)
+    streamflow_df = pd.read_excel('Streamflow_Data.xlsx', sheet_name=sheet)
+    streamflow_subset = streamflow_df.drop(['Year', 'Month', 'ft3/s'], axis=1)
+    print(streamflow_subset)
+    streamflow_subset['r_djf'] = corr_djf[sheet]
+    streamflow_subset['p_djf'] = p_djf[sheet]
+    streamflow_subset['r_mam'] = corr_mam[sheet]
+    streamflow_subset['p_mam'] = p_mam[sheet]
+    streamflow_subset['r_jja'] = corr_jja[sheet]
+    streamflow_subset['p_jja'] = p_jja[sheet]
+    streamflow_subset = streamflow_subset.iloc[0]
+    df.append(streamflow_subset)
 
-    df = pd.DataFrame(df)
+df = pd.DataFrame(df)
