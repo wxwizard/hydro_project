@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.signal import detrend
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, normaltest
 
 extent = pd.read_excel('Sea_Ice_Index_Daily_Extent_G02135_v3.0.xlsx', sheet_name=1)
 extent = extent.T
@@ -54,6 +54,10 @@ for season in range(len(seasons)):
         streamflow_list = streamflow_df['ft3/s'].to_list()
         # convert data from ft^3/s to m^3/s
         streamflow_list = [value / 35.3147 for value in streamflow_list]
+        # fill 0's in data to avoid RunTime Warning
+        streamflow_list = [10**-10 if value == 0 else value for value in streamflow_list]
+        # compute log_transformed streamflow
+        streamfow_list = np.log10(streamflow_list)
         # compute mean and SD
         mean = np.mean(streamflow_list)
         sd = np.std(streamflow_list)
@@ -76,11 +80,8 @@ for season in range(len(seasons)):
         seaice_p.append(r[1])
 
 corr_djf = seaice_corr[0:131]
-print(corr_djf)
 corr_mam = seaice_corr[131:262]
-print(corr_mam)
 corr_jja = seaice_corr[262:]
-print(corr_jja)
 
 p_djf = seaice_p[0:131]
 p_mam = seaice_p[131:262]
@@ -91,7 +92,6 @@ for sheet in range(num_stations):
     print(sheet)
     streamflow_df = pd.read_excel('Streamflow_Data.xlsx', sheet_name=sheet)
     streamflow_subset = streamflow_df.drop(['Year', 'Month', 'ft3/s'], axis=1)
-    print(streamflow_subset)
     streamflow_subset['r_djf'] = corr_djf[sheet]
     streamflow_subset['p_djf'] = p_djf[sheet]
     streamflow_subset['r_mam'] = corr_mam[sheet]
@@ -102,3 +102,4 @@ for sheet in range(num_stations):
     df.append(streamflow_subset)
 
 df = pd.DataFrame(df)
+df.to_excel('stats.xlsx')
