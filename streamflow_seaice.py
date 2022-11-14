@@ -101,5 +101,14 @@ for sheet in range(num_stations):
     streamflow_subset = streamflow_subset.iloc[0]
     df.append(streamflow_subset)
 
+from openpyxl import load_workbook
+
+def get_sheetnames_xlsx(filepath):
+    wb = load_workbook(filepath, read_only=True)
+    return wb.sheetnames
+
+sheet_names = get_sheetnames_xlsx('Streamflow_Data.xlsx')
+
 df = pd.DataFrame(df)
+df.index = sheet_names
 df.to_excel('stats.xlsx')
